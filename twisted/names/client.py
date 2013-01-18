@@ -803,6 +803,21 @@ def lookupService(name, timeout=None):
     """
     return getResolver().lookupService(name, timeout)
 
+def lookupSSHFingerprint(name, timeout=None):
+    """
+    Perform an SSHFP record lookup.
+
+    @type name: C{str}
+    @param name: DNS name to resolve.
+
+    @type timeout: Sequence of C{int}
+    @param timeout: Number of seconds after which to reissue the query.
+    When the last timeout expires, the query is considered failed.
+
+    @rtype: C{Deferred}
+    """
+    return getResolver().lookupSSHFingerprint(name, timeout)
+
 def lookupHostInfo(name, timeout=None):
     """
     Perform a HINFO record lookup.

@@ -17,6 +17,7 @@ __all__ = [
     'A', 'A6', 'AAAA', 'AFSDB', 'CNAME', 'DNAME', 'HINFO',
     'MAILA', 'MAILB', 'MB', 'MD', 'MF', 'MG', 'MINFO', 'MR', 'MX',
     'NAPTR', 'NS', 'NULL', 'PTR', 'RP', 'SOA', 'SPF', 'SRV', 'TXT', 'WKS',
+    'SSHPF',
 
     'ANY', 'CH', 'CS', 'HS', 'IN',
 
@@ -29,6 +30,7 @@ __all__ = [
     'Record_MG', 'Record_MINFO', 'Record_MR', 'Record_MX', 'Record_NAPTR',
     'Record_NS', 'Record_NULL', 'Record_PTR', 'Record_RP', 'Record_SOA',
     'Record_SPF', 'Record_SRV', 'Record_TXT', 'Record_WKS', 'UnknownRecord',
+    'Record_SSHFP',
 
     'QUERY_CLASSES', 'QUERY_TYPES', 'REV_CLASSES', 'REV_TYPES', 'EXT_QUERIES',
 
@@ -119,6 +121,7 @@ SRV = 33
 NAPTR = 35
 A6 = 38
 DNAME = 39
+SSHFP = 44
 SPF = 99
 
 QUERY_TYPES = {
@@ -148,7 +151,8 @@ QUERY_TYPES = {
     NAPTR: 'NAPTR',
     A6: 'A6',
     DNAME: 'DNAME',
-    SPF: 'SPF'
+    SSHFP: 'SSHFP',
+    SPF: 'SPF',
 }
 
 IXFR, AXFR, MAILB, MAILA, ALL_RECORDS = range(251, 256)
@@ -1610,6 +1614,77 @@ class Record_SPF(Record_TXT):
     TYPE = SPF
     fancybasename = 'SPF'
 
+
+@implementer(IEncodable, IRecord)
+class Record_SSHFP(tputil.FancyEqMixin, tputil.FancyStrMixin):
+    """
+    The Fingerprint of the SSH-Server
+
+    @type algorithm: C{int}
+    @ivar algorithm: This algorithm number octet describes the algorithm of the
+        public key. The following values are assigned:
+
+          Value    Algorithm name
+          -----    --------------
+          0        reserved
+          1        RSA
+          2        DSS
+
+    @type fp_type: C{int}
+    @ivar fp_type: The fingerprint type octet describes the message-digest
+        algorithm used to calculate the fingerprint of the public key. The
+        following values are assigned:
+
+          Value    Fingerprint type
+          -----    ----------------
+          0        reserved
+          1        SHA-1
+
+    For interoperability reasons, as few fingerprint types as possible should
+    be reserved. The only reason to reserve additional types is to increase
+    security.
+
+    @type fingerprint: L{Charstr}
+    @ivar fingerprint: The fingerprint is calculated over the public key blob
+        as described in RFC 4253.
+
+       The message-digest algorithm is presumed to produce an opaque octet
+       string output, which is placed as-is in the RDATA fingerprint field.
+
+    @type ttl: C{int}
+    @ivar ttl: The maximum number of seconds which this record should be
+        cached.
+
+    @see: U{http://www.faqs.org/rfcs/rfc4255.html}
+    """
+    TYPE = SSHFP
+
+    fancybasename = 'SSHFP'
+    compareAttributes = ('algorithm', 'fp_type', 'fingerprint', 'ttl')
+    showAttributes = ('algorithm',
+                      'fp_type',
+                      ('fingerprint', 'fingerprint', '%s'),
+                      'ttl')
+
+    def __init__(self, algorithm=0, fp_type=0, fingerprint='', ttl=None):
+        self.algorithm = int(algorithm)
+        self.fp_type = int(fp_type)
+        self.fingerprint = Charstr(fingerprint)
+        self.ttl = str2time(ttl)
+
+    def encode(self, strio, compDict = None):
+        strio.write(struct.pack('!BB', self.algorithm, self.fp_type))
+        # This can't be compressed
+        self.fingerprint.encode(strio, None)
+
+    def decode(self, strio, length = None):
+        r = struct.unpack('!BB', readPrecisely(strio, struct.calcsize('!HH')))
+        self.algorithm, self.fp_type = r
+        self.fingerprint = Charstr()
+        self.fingerprint.decode(strio)
+
+    def __hash__(self):
+        return hash((self.algorithm, self.fp_type, self.fingerprint))
 
 
 class Message:

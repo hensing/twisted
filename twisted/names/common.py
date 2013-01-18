@@ -170,6 +170,12 @@ class ResolverBase:
         """
         return self._lookup(name, dns.IN, dns.SRV, timeout)
 
+    def lookupSSHFingerprint(self, name, timeout = None):
+        """
+        @see: twisted.names.client.lookupSSHFingerprint
+        """
+        return self._lookup(name, dns.IN, dns.SSHFP, timeout)
+
     def lookupHostInfo(self, name, timeout = None):
         """
         @see: twisted.names.client.lookupHostInfo
@@ -301,6 +307,7 @@ typeToMethod = {
     dns.RP:    'lookupResponsibility',
     dns.AFSDB: 'lookupAFSDatabase',
     dns.SRV:   'lookupService',
+    dns.SSHFP: 'lookupSSHFingerprint',
     dns.NAPTR: 'lookupNamingAuthorityPointer',
     dns.AXFR:         'lookupZone',
     dns.ALL_RECORDS:  'lookupAllRecords',
